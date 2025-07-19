@@ -87,7 +87,6 @@ public:
             ss << "Order cannot be filled for more than its remaining quantity: ";
             throw std::logic_error(ss.str());
         }
-        
         remainingQuantity_ -= quantity;
     }
 

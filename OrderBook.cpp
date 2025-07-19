@@ -81,6 +81,7 @@ public:
     Quantity GetRemainingQuantity() const { return remainingQuantity_; }
     Quantity GetFilledQuantity() const { return GetInitialQuantity() - GetRemainingQuantity(); }
 
+    // Function to fill the incoming quantity of stock
     void Fill(Quantity quantity){
         if(quantity > GetRemainingQuantity()){
             std::stringstream ss;

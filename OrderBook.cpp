@@ -1,10 +1,11 @@
-#include <iostream>
-#include <vector>
-#include <map>
-#include <unordered_map>
-#include <string>
-#include <list>        
-#include <cstdint>    
+#include<iostream>
+#include<vector>
+#include<list>
+#include<memory>        // for std::shared_ptr
+#include<sstream>       // for std::stringstream
+#include<stdexcept>     // for std::logic_error
+#include<cstdint>    
+#include<sstream>   
 
 // Hr stock ki apni khudki orderbook exist kregi
 // aur yeh fir actual companies mn aise store hoga ->
@@ -34,7 +35,7 @@ using OrderId = std :: uint64_t;
 
 // Represents a single price level in an order book
 // price_ : price kya h uss level pr
-// quanitity_ : how many units are available at that level
+// quantity_ : how many units are available at that level
 struct LevelInfo
 {
     Price price_;
@@ -44,9 +45,9 @@ struct LevelInfo
 using LevelInfos = std :: vector<LevelInfo>;
 
 // Yeh h ek snapshot hmari Orderbook ka
-class OrderbookLeveInfos {
+class OrderbookLevelInfos {
 public :
-    OrderbookLeveInfos(const LevelInfos& bids, const LevelInfos& asks)
+    OrderbookLevelInfos(const LevelInfos& bids, const LevelInfos& asks)
     : bids_ { bids }
     , asks_ { asks }
     {}
@@ -58,6 +59,50 @@ private:
     LevelInfos bids_;
     LevelInfos asks_;
 };
+
+class Order 
+{
+public: 
+    Order(OrderType orderType, OrderId orderId, Side side, Price price, Quantity quantity)
+        : 
+        orderType_ { orderType }
+        , orderId_ { orderId }
+        , side_ { side }
+        , price_ { price }
+        , initialQuantity_  { quantity }
+        , remainingQuantity_ { quantity }
+    {}
+        
+    OrderId GetOrderId() const { return orderId_; }
+    Side GetSide() const { side_; }
+    Price GetPrice() const { return price_; }
+    OrderType GetOrderType() const { return orderType_; }
+    Quantity GetInitialQuantity() const { return initialQuantity_; }
+    Quantity GetRemainingQuantity() const { return remainingQuantity_; }
+    Quantity GetFilledQuantity() const { return GetInitialQuantity() - GetRemainingQuantity(); }
+
+    void Fill(Quantity quantity){
+        if(quantity > GetRemainingQuantity()){
+            std::stringstream ss;
+            ss << "Order cannot be filled for more than its remaining quantity: ";
+            throw std::logic_error(ss.str());
+        }
+        remainingQuantity_ -= quantity;
+    }
+
+private:
+    OrderType orderType_;
+    OrderId orderId_;
+    Side side_;
+    Price price_;
+    Quantity initialQuantity_;
+    Quantity remainingQuantity_;
+};
+
+// Kyuki mere individual order alg alg DS mn pass honge to it is better to have pointer to it 
+// rather than making copy everytime
+using OrderPointer = std :: shared_ptr<Order>;
+using OrderPointers = std :: list<OrderPointer>;
 
 int main() {
     std :: cout << "CHECK" << std :: endl;

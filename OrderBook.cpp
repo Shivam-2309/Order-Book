@@ -6,6 +6,8 @@
 #include<stdexcept>     // for std::logic_error
 #include<cstdint>    
 #include<sstream>   
+#include<map>
+#include<unordered_map>
 
 // Hr stock ki apni khudki orderbook exist kregi
 // aur yeh fir actual companies mn aise store hoga ->
@@ -80,7 +82,7 @@ public:
     Quantity GetInitialQuantity() const { return initialQuantity_; }
     Quantity GetRemainingQuantity() const { return remainingQuantity_; }
     Quantity GetFilledQuantity() const { return GetInitialQuantity() - GetRemainingQuantity(); }
-
+    bool IsFilled() const { return GetRemainingQuantity() == 0; }
     // Function to fill the incoming quantity of stock
     void Fill(Quantity quantity){
         if(quantity > GetRemainingQuantity()){
@@ -162,6 +164,111 @@ public:
 private:
     TradeInfo bidTrade_;
     TradeInfo askTrade_;
+};
+
+using Trades = std :: vector<Trade>;
+
+class Orderbook {
+private:
+    struct OrderEntry
+    {
+        OrderPointer order_ { nullptr };
+        OrderPointers::iterator location_;
+    };
+
+    // price : list of buy orders, sorted in descending order (highest bid first)
+    std :: map<Price, OrderPointers, std :: greater<Price>> bids_;
+    // price : list of sell ordered, sorted in ascending order (lowest ask first)
+    std :: map<Price, OrderPointers, std :: less<Price>> asks_;
+    // Lookup by orderId to remove orders easily after a map
+    std :: unordered_map<OrderId, OrderEntry> orders_;
+
+    bool canMatch(Side side, Price price) const
+    {
+        if(side == Side :: Buy)
+        {
+            if(asks_.empty()) return false;
+
+            const auto bestAsk = (asks_.begin() -> first);
+            return price >= bestAsk;  
+        }
+        else 
+        {
+            if(bids_.empty()) return false;
+            
+            const auto bestBid = (bids_.begin()->first);
+            return price <= bestBid;
+        }
+    }
+
+    // CORE MATCHING LOGIC
+    Trades MatchOrders() 
+    {
+        Trades trades;
+        trades.reserve(orders_.size());
+
+        while(1){
+            if(bids_.empty() || asks_.empty()) break;
+
+            auto bidPrice = bids_.begin() -> first;
+            auto bids = bids_.begin() -> second;
+            auto askPrice = asks_.begin() -> first;
+            auto asks = asks_.begin() -> second;
+
+            if(bidPrice < askPrice) break;
+
+            while(bids.size() && asks.size()){
+                auto &bid = bids.front();
+                auto &ask = asks.front();
+                
+                Quantity quantity = std :: min( bid -> GetRemainingQuantity(), ask -> GetRemainingQuantity());
+                
+                bid -> Fill(quantity);
+                ask -> Fill(quantity);
+
+                if(bid -> IsFilled())
+                {
+                    bids.pop_front();
+                    orders_.erase(bid -> GetOrderId());
+                }
+
+                if(ask -> IsFilled())
+                {
+                    asks.pop_front();
+                    orders_.erase(ask -> GetOrderId());
+                }
+
+                if(bids.empty()) bids_.erase(bidPrice);
+                if(asks.empty()) asks_.erase(askPrice);
+
+                trades.push_back(Trade{ TradeInfo{ bid -> GetOrderId(), bid -> GetPrice(), quantity},
+                                        TradeInfo{ ask -> GetOrderId(), ask -> GetPrice(), quantity }
+                }); 
+            }
+        }
+
+        if(!bids_.empty())
+        {   
+            auto bids = bids_.begin() -> second;
+            auto &order = bids.front();
+            if(order -> GetOrderType() == OrderType::FillAndKill)
+                CancelOrder(order -> GetOrderId());
+        }
+
+        if(!asks_.empty())
+        {
+            auto asks = asks_.begin() -> second;
+            auto order = asks.front();
+            if(order -> GetOrderType() == OrderType::FillAndKill){
+                CancelOrder(order -> GetOrderId());
+            }
+        }
+
+        return trades;
+    }
+
+public: 
+
 };
 
 int main() {

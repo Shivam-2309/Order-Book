@@ -1,17 +1,31 @@
+#include<thread>
+#include<mutex>
 #include "OrderBook.hpp"
 
+void addOrders(OrderBook& ob) {
+    ob.addOrder(Order{1, Side::Buy, 100.0, 10, OrderType::LIMIT});
+    ob.addOrder(Order{2, Side::Sell, 99.0, 5, OrderType::LIMIT});
+}
+
+void cancelOrder(OrderBook& ob) {
+    ob.cancelOrder(1);
+}
+
+void printOrders(const OrderBook& ob) {
+    ob.printOrderBook();
+}
+
 int main() {
-    OrderBook book;
+    OrderBook ob;
+    
+    // Example to check whether this supports multithreading or not 
+    std::thread t1(addOrders, std::ref(ob));
+    std::thread t2(cancelOrder, std::ref(ob));
+    std::thread t3(printOrders, std::cref(ob));
 
-    book.addOrder(Order(1, Side::BUY, OrderType::LIMIT, 100.0, 10, 1));
-    book.addOrder(Order(2, Side::SELL, OrderType::LIMIT, 99.0, 5, 2));
-    book.addOrder(Order(3, Side::SELL, OrderType::LIMIT, 100.0, 5, 3));
-    book.addOrder(Order(4, Side::BUY, OrderType::MARKET, 0.0, 10, 4));
-    book.addOrder(Order(5, Side::SELL, OrderType::FOK, 98.0, 15, 5));
-    book.addOrder(Order(6, Side::SELL, OrderType::IOC, 101.0, 5, 6));
+    t1.join();
+    t2.join();
+    t3.join();
 
-    book.printOrderBook();
-
-    book.cancelOrder(1);
-    book.printOrderBook();
+    return 0;
 }

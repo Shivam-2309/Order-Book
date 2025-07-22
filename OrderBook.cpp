@@ -1,6 +1,11 @@
 #include "OrderBook.hpp"
+#include<mutex>
+#include<thread>
 
 void OrderBook::addOrder(const Order& order) {
+    // yeh wala lock apne aap call hua jaise hi function call hua
+    // ab yeh addOrder koi critical section nhi raha and thread safe hogya
+    std::lock_guard<std::mutex> lock(mtx);
     switch (order.type) {
         case OrderType::LIMIT: addLimitOrder(order); break;
         case OrderType::MARKET: addMarketOrder(order); break;
@@ -87,6 +92,7 @@ void OrderBook::matchOrder(Order order, std::map<double, std::deque<Order>>& boo
 }
 
 void OrderBook::cancelOrder(int orderId) {
+    std::lock_guard<std::mutex> lock(mtx);
     auto it = idMap.find(orderId);
     if (it == idMap.end()) {
         std::cout << "Order ID " << orderId << " not found.\n";
@@ -119,6 +125,7 @@ void OrderBook::cancelOrder(int orderId) {
 }
 
 void OrderBook::printOrderBook() const {
+    // kyuki yeh sirf ek real operation h to lock ki zarurt nhi
     std::cout << "\n--- SELL ---\n";
     for (auto it = sellOrders.begin(); it != sellOrders.end(); ++it) {
         const auto& queue = it->second;

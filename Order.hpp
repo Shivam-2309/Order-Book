@@ -10,9 +10,9 @@
 // Ex: TCS ke 200 share uthalo Market Price pr
 // FOK: ya to pura order karo ya fir karo hi na 
 // Buy 500 shares of Wipro at ₹450 using FOK.
-// If only 300 shares are available at or below ₹450, the order is killed, and no shares are bough
+// If only 300 shares are available at or below ₹450, the order is killed, and no shares are bought
 // IOC: Execute what you can and cancel the rest
-ple:
+// ple:
 
 // Sell 800 shares of HDFC Bank at ₹1600 using IOC.
 // If buyers are available for only 600 shares at that price, it will sell 600 and cancel the remaining 200.

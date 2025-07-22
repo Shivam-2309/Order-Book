@@ -64,18 +64,25 @@ void OrderBook::matchOrder(Order order, std::map<double, std::deque<Order>>& boo
             order.quantity -= traded;
             qit->quantity -= traded;
 
-            if (qit->quantity == 0) {
+            if(qit->quantity == 0){
+                // agr vo order hogya
+                // to hatado book mn se
                 idMap.erase(qit->id);
                 qit = queue.erase(qit);
             } else {
-                ++qit;
+                // vrna agle index of the deque mn chle jaao
+                qit++;
             }
         }
 
-        if (queue.empty())
+        if(queue.empty()){
+            // current wala price hogya
             it = book.erase(it);
-        else
-            ++it;
+        }
+        else{
+            // agle wale pr chlte h 
+            it++;
+        }
     }
 }
 
@@ -86,6 +93,8 @@ void OrderBook::cancelOrder(int orderId) {
         return;
     }
 
+    // this is the reason for O(1) lookup and why we made the idMap ds
+    // orderId -> {side, typeOfBook store kra h mne}
     Side side = it->second.first;
     double price = it->second.second;
     auto& book = side == Side::BUY ? buyOrders : sellOrders;
@@ -93,6 +102,8 @@ void OrderBook::cancelOrder(int orderId) {
     auto qit = book.find(price);
     if (qit != book.end()) {
         auto& queue = qit->second;
+        // hr deque ko check karo agr hogya to bdiya vrna next deque ko check karo
+        // worst case mn O(N) lookup agr saare hi same price ke h
         for (auto it2 = queue.begin(); it2 != queue.end(); ++it2) {
             if (it2->id == orderId) {
                 queue.erase(it2);
@@ -103,6 +114,7 @@ void OrderBook::cancelOrder(int orderId) {
         }
     }
 
+    // this line will never be executed but it is good to writ this as a fallback
     std::cout << "Order ID " << orderId << " not found in book.\n";
 }
 
